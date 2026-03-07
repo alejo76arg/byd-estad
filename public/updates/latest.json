@@ -1,0 +1,7 @@
+{
+  "version": "2.2.2",
+  "url": "https://bydstats.com/updates/byd-stats-v2.2.2.zip",
+  "minAppVersion": "1.6.0",
+  "changelog": "Automated OTA Release via GitHub Actions: 2.2.2",
+  "releasedAt": "2026-03-07T21:10:26Z"
+}
