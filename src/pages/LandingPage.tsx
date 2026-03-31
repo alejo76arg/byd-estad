@@ -1,13 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { BYD_RED } from '../components/Icons'; // Assuming BYD_RED is exported from Icons or another constant file
+import { BYD_RED } from '../components/Icons';
 import { Upload, Cloud } from '../components/Icons';
-
-// Note: BYD_RED might be in constants, let's check imports in App.jsx.
-// App.jsx imports { ..., BYD_RED } from './components/Icons';
-// But usually constants are in utils/constants.js. 
-// However, assuming App.jsx import is correct for now.
 
 const LandingPage = ({
     isCompact,
@@ -15,7 +10,11 @@ const LandingPage = ({
     error,
     googleSync,
     isNative,
-    onFileProcess, // Wrapper around processDB to handle file object
+    onFileProcess,
+    // NUEVO: props de caché (opcionales para no romper si no se pasan)
+    hasCachedDb = false,
+    cachedDbInfo = null,
+    clearCachedDb = null,
 }) => {
     const { t } = useTranslation();
     const [dragOver, setDragOver] = useState(false);
@@ -48,6 +47,14 @@ const LandingPage = ({
         e.target.value = '';
     }, [onFileProcess, t]);
 
+    // Formatear fecha de última carga
+    const lastLoadedText = cachedDbInfo?.savedAt
+        ? new Date(cachedDbInfo.savedAt).toLocaleString('es-AR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          })
+        : null;
+
     return (
         <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-start justify-center p-4 pt-8 pb-4 overflow-y-auto">
             <div className="w-full max-w-xl">
@@ -71,6 +78,29 @@ const LandingPage = ({
                         <p style={{ color: BYD_RED }}>{error}</p>
                     </div>
                 )}
+
+                {/* ── NUEVO: Banner de DB guardada ────────────────────────── */}
+                {hasCachedDb && cachedDbInfo && (
+                    <div className="mb-4 px-4 py-3 bg-slate-800/70 border border-slate-700 rounded-2xl flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="text-xs text-slate-400 mb-0.5">Base de datos guardada</p>
+                            <p className="text-sm text-white font-medium truncate">{cachedDbInfo.fileName}</p>
+                            {lastLoadedText && (
+                                <p className="text-xs text-slate-500 mt-0.5">Última carga: {lastLoadedText}</p>
+                            )}
+                        </div>
+                        {clearCachedDb && (
+                            <button
+                                onClick={clearCachedDb}
+                                className="shrink-0 text-xs text-slate-500 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-slate-700"
+                                title="Olvidar base de datos guardada"
+                            >
+                                ✕ Olvidar
+                            </button>
+                        )}
+                    </div>
+                )}
+                {/* ────────────────────────────────────────────────────────── */}
 
                 <div
                     className={`relative border-2 border-dashed rounded-3xl text-center transition-all cursor-pointer ${isCompact ? 'p-6' : 'p-8 sm:p-12'}`}
@@ -96,9 +126,18 @@ const LandingPage = ({
                     >
                         <Upload className={`${isCompact ? 'w-6 h-6' : 'w-8 h-8'}`} style={{ color: dragOver ? 'white' : BYD_RED }} />
                     </div>
+
+                    {/* ── NUEVO: texto dinámico según si hay DB guardada ── */}
                     <p className={`text-white mb-2 ${isCompact ? 'text-base' : 'text-lg sm:text-xl'}`}>
-                        {sqlReady ? (isNative ? t('landing.tapToSelect') : t('landing.clickToSelect')) : t('landing.preparing')}
+                        {!sqlReady
+                            ? t('landing.preparing')
+                            : hasCachedDb
+                                ? (isNative ? '📂 Tocar para actualizar DB' : '📂 Clic para actualizar DB')
+                                : (isNative ? t('landing.tapToSelect') : t('landing.clickToSelect'))
+                        }
                     </p>
+                    {/* ─────────────────────────────────────────────────── */}
+
                     <p className="text-slate-400 text-xs mt-4">
                         {t('landing.hint')}
                     </p>
@@ -160,4 +199,3 @@ const LandingPage = ({
 };
 
 export default LandingPage;
-
