@@ -76,6 +76,15 @@ jobs:
           ls -la android/app/src/main/assets/public/ || echo "public folder missing"
           echo "✅ Android project ready"
 
+      # ── FIX: eliminar archivos .gz duplicados que rompen Gradle ──────────
+      - name: Remove duplicate .gz assets
+        run: |
+          echo "🗜️ Removing .gz duplicates from Android assets..."
+          find android/app/src/main/assets -name "*.gz" -delete
+          echo "✅ Done. Remaining files:"
+          find android/app/src/main/assets -type f | wc -l
+      # ─────────────────────────────────────────────────────────────────────
+
       - name: Accept Android SDK licenses
         run: yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
@@ -146,12 +155,12 @@ jobs:
           ./gradlew assembleRelease --stacktrace
         continue-on-error: true
 
-
-
       - name: Rename Debug APK
+        if: steps.build_debug.outcome == 'success'
         run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/BYD-Stats-debug.apk
 
       - name: Upload Debug APK
+        if: steps.build_debug.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: BYD-Stats-debug
