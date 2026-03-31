@@ -56,7 +56,19 @@ export const useAppOrchestrator = () => {
         setEditingCharge
     } = useData();
 
-    const { sqlReady, loading, error, initSql, processDB: processDBHook, exportDatabase: exportDBHook } = database;
+    const {
+        sqlReady,
+        loading,
+        error,
+        initSql,
+        processDB: processDBHook,
+        exportDatabase: exportDBHook,
+        // NUEVO: funciones de caché del hook useDatabase modificado
+        loadCachedDb,
+        hasCachedDb,
+        cachedDbInfo,
+        clearCachedDb,
+    } = database;
 
     // View State (Local to orchestrator, lifting up from App.jsx)
     const [backgroundLoad, setBackgroundLoad] = useState(false);
@@ -79,14 +91,41 @@ export const useAppOrchestrator = () => {
     const [allChargesSortOrder, setAllChargesSortOrder] = useState('desc');
     const allChargesScrollRef = useRef(null);
 
-    // Initial load effect
+    // ─────────────────────────────────────────────────────────────────────────
+    // MODIFICADO: al iniciar, cargar SQL.js y luego intentar auto-cargar la DB
+    // cacheada del IndexedDB sin que el usuario tenga que elegir nada.
+    // ─────────────────────────────────────────────────────────────────────────
     useEffect(() => {
-        initSql();
+        async function bootstrap() {
+            // 1. Inicializar SQL.js (igual que antes)
+            await initSql();
+
+            // 2. Si hay una DB guardada de una sesión anterior, cargarla automáticamente
+            if (hasCachedDb && loadCachedDb) {
+                try {
+                    logger.info('[Orchestrator] DB cacheada encontrada, cargando automáticamente...');
+                    const trips = await loadCachedDb();
+                    if (trips && trips.length > 0) {
+                        setRawTrips(trips);
+                        logger.info(`[Orchestrator] Auto-carga exitosa: ${trips.length} viajes`);
+                        // toast opcional — comentalo si preferís que sea silencioso
+                        // toast.success(`DB cargada automáticamente (${trips.length} viajes)`);
+                    }
+                } catch (e) {
+                    logger.error('[Orchestrator] Error en auto-carga de DB cacheada:', e);
+                    // Si falla, el usuario verá el LandingPage normal para elegir archivo
+                }
+            }
+        }
+
+        bootstrap();
+
         const timer = setTimeout(() => {
             setBackgroundLoad(true);
         }, 1500);
         return () => clearTimeout(timer);
-    }, [initSql]);
+    }, []); // Solo al montar — initSql y loadCachedDb son estables (useCallback)
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Derived Logic
     const showAllTripsModal = modals.allTrips;
@@ -118,7 +157,7 @@ export const useAppOrchestrator = () => {
 
     const openTripDetail = useCallback((trip: Trip) => {
         setSelectedTrip(trip);
-        openModal('tripDetail'); // Using openModal instead of local state
+        openModal('tripDetail');
     }, [openModal, setSelectedTrip]);
 
     const { loadChargeRegistry } = useChargeImporter();
@@ -144,7 +183,6 @@ export const useAppOrchestrator = () => {
 
     // Chart Dimensions (pass through)
     const chartDimensions = useChartDimensions({ isVertical, isFullscreenBYD, isCompact });
-
 
     return {
         // State
@@ -189,6 +227,11 @@ export const useAppOrchestrator = () => {
         loadChargeRegistry,
         openTripDetail,
         handleChargeSelect,
+
+        // NUEVO: exponer info de caché por si algún componente la necesita
+        cachedDbInfo,
+        hasCachedDb,
+        clearCachedDb,
 
         // Refs
         allTripsScrollRef,
