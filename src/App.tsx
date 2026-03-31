@@ -48,7 +48,6 @@ export default function BYDStatsAnalyzer() {
     allChargesScrollRef,
 
     // Pass-through props for views
-    // Pass-through props for views
     rawTrips,
     charges,
     settings,
@@ -73,7 +72,12 @@ export default function BYDStatsAnalyzer() {
     isTransitioning,
     fadingTab,
     backgroundLoad,
-    setSwipeContainer
+    setSwipeContainer,
+
+    // NUEVO: caché de DB
+    hasCachedDb,
+    cachedDbInfo,
+    clearCachedDb,
   } = useAppOrchestrator();
 
   // Loading Screen
@@ -100,6 +104,9 @@ export default function BYDStatsAnalyzer() {
             googleSync={googleSync}
             isNative={isNative}
             onFileProcess={processDB}
+            hasCachedDb={hasCachedDb}
+            cachedDbInfo={cachedDbInfo}
+            clearCachedDb={clearCachedDb}
           />
         </Suspense>
 
